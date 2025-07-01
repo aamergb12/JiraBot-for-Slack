@@ -87,7 +87,7 @@ def slack_events():
         convo["step"] = "create_issue"
 
         # 📅 Parse due date
-        parsed_due = dateparser.parse(convo["due_raw"])
+        parsed_due = dateparser.parse(convo["due"])
         due_date = parsed_due.date().isoformat() if parsed_due else None
 
         if not due_date:
