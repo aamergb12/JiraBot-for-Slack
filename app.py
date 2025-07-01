@@ -112,7 +112,6 @@ def slack_events():
                 "project": {"key": "BT"},
                 "summary": convo["summary"],
                 "duedate": due_date,
-                "priority": {"name": convo["priority"]},
                 "issuetype": {"name": "Task"}
             }
         }
