@@ -1,5 +1,3 @@
-# JiraBot-for-Slack
-
 Semantic Slack Bot for Jira
 
 This project implements a Slack bot that enables users to create, update, and query Jira issues semantically through natural language chat interactions.
@@ -58,13 +56,18 @@ Step 4: Environment Configuration
 
 Create a .env file in your project directory and add the following:
 
-SLACK_BOT_TOKEN=xoxb-your-slack-bot-token JIRA_BASE_URL=https://your-domain.atlassian.net JIRA_EMAIL=your-email@example.com JIRA_API_TOKEN=your-jira-api-token OPENAI_API_KEY=your-openai-api-key
+SLACK_BOT_TOKEN=xoxb-your-slack-bot-token
+JIRA_BASE_URL=https://your-domain.atlassian.net
+JIRA_EMAIL=your-email@example.com
+JIRA_API_TOKEN=your-jira-api-token
+OPENAI_API_KEY=your-openai-api-key
 
 Step 5: Backend Setup
 
 Clone this repository:
 
-git clone https://github.com/yourusername/slack-jira-semantic-bot.git cd slack-jira-semantic-bot
+git clone https://github.com/yourusername/slack-jira-semantic-bot.git
+cd slack-jira-semantic-bot
 
 Install dependencies:
 
@@ -119,3 +122,4 @@ Scheduled reminders and notifications in Slack
 License
 
 Distributed under the MIT License. See LICENSE for more information.
+
