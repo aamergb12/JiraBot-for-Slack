@@ -1,10 +1,8 @@
 from flask import Flask, request, jsonify
-import os, time
-import requests
+import os, requests
 from dotenv import load_dotenv
 from base64 import b64encode
 from openai import OpenAI
-import dateparser
 
 # 🌱 Load environment variables from .env
 load_dotenv()
@@ -77,7 +75,7 @@ def slack_events():
     elif convo["step"] == "ask_summary":
         convo["summary"] = user_msg
         convo["step"] = "ask_due"
-        send_slack_message(channel_id, "📅 When is it due?")
+        send_slack_message(channel_id, "🗕️ When is it due?")
     elif convo["step"] == "ask_due":
         convo["due_raw"] = user_msg
         convo["step"] = "ask_priority"
@@ -86,23 +84,27 @@ def slack_events():
         convo["priority"] = user_msg.capitalize()
         convo["step"] = "create_issue"
 
-        # 📅 Parse due date with fallback settings
-        parsed_due = dateparser.parse(
-            convo["due_raw"],
-            languages=["en"],
-            settings={
-                "PREFER_DATES_FROM": "future",
-                "RETURN_AS_TIMEZONE_AWARE": False,
-                "DATE_ORDER": "MDY"
-            }
-        )
-
-        if not parsed_due:
-            send_slack_message(channel_id, "⚠️ Couldn't understand the due date. Please use a clearer format (e.g., 'July 2, 2025').")
+        # ✅ Use OpenAI to get clean due date
+        try:
+            gpt_due = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Extract the due date in format YYYY-MM-DD only."},
+                    {"role": "user", "content": convo["due_raw"]}
+                ],
+                max_tokens=10
+            )
+            due_date = gpt_due.choices[0].message.content.strip()
+        except Exception as e:
+            send_slack_message(channel_id, f"❌ GPT error parsing due date: {str(e)}")
             conversation_states.pop(user_id, None)
             return jsonify({"ok": True})
 
-        due_date = parsed_due.date().isoformat()
+        # Simple format check
+        if len(due_date) != 10 or "-" not in due_date:
+            send_slack_message(channel_id, "⚠️ Couldn't understand the due date. Please say something like 'tomorrow' or 'July 2, 2025'.")
+            conversation_states.pop(user_id, None)
+            return jsonify({"ok": True})
 
         # 🧱 Build Jira payload
         jira_payload = {
@@ -115,7 +117,7 @@ def slack_events():
             }
         }
 
-        # 📬 Send to Jira
+        # 📩 Send to Jira
         jira_resp = requests.post(
             f"{JIRA_BASE_URL}/rest/api/3/issue",
             headers=get_jira_auth_header(),
