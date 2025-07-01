@@ -86,11 +86,17 @@ def slack_events():
         convo["priority"] = user_msg.capitalize()
         convo["step"] = "create_issue"
 
-        # 📅 Parse due date safely with settings
+        # 📅 Parse due date with fallback settings
         parsed_due = dateparser.parse(
             convo["due_raw"],
-            settings={"PREFER_DATES_FROM": "future", "RETURN_AS_TIMEZONE_AWARE": False}
+            languages=["en"],
+            settings={
+                "PREFER_DATES_FROM": "future",
+                "RETURN_AS_TIMEZONE_AWARE": False,
+                "DATE_ORDER": "MDY"
+            }
         )
+
         if not parsed_due:
             send_slack_message(channel_id, "⚠️ Couldn't understand the due date. Please use a clearer format (e.g., 'July 2, 2025').")
             conversation_states.pop(user_id, None)
@@ -116,7 +122,7 @@ def slack_events():
             json=jira_payload
         )
 
-        # ✅ Respond to Slack
+        # ✅ Response
         if jira_resp.status_code == 201:
             issue_key = jira_resp.json().get("key")
             send_slack_message(channel_id, f"✅ Created Jira issue *{issue_key}*: {convo['summary']}")
