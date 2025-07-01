@@ -4,6 +4,7 @@ import requests
 from dotenv import load_dotenv
 from base64 import b64encode
 from openai import OpenAI
+import dateparser
 
 # 🌱 Load environment variables from .env
 load_dotenv()
@@ -59,7 +60,7 @@ def slack_events():
     handled_event_ids.add(event_id)
 
     event = data.get("event", {})
-    user_msg = event.get("text", "")
+    user_msg = event.get("text", "").strip()
     user_id = event.get("user")
     channel_id = event.get("channel")
 
@@ -71,7 +72,6 @@ def slack_events():
     convo = conversation_states.get(user_id, {})
 
     if not convo:
-        # Ask for task summary
         conversation_states[user_id] = {"step": "ask_summary"}
         send_slack_message(channel_id, "📝 What is the task summary?")
     elif convo["step"] == "ask_summary":
@@ -79,18 +79,28 @@ def slack_events():
         convo["step"] = "ask_due"
         send_slack_message(channel_id, "📅 When is it due?")
     elif convo["step"] == "ask_due":
-        convo["due"] = user_msg
+        convo["due_raw"] = user_msg
         convo["step"] = "ask_priority"
         send_slack_message(channel_id, "❗ How important is it? (e.g., Low, Medium, High)")
     elif convo["step"] == "ask_priority":
-        convo["priority"] = user_msg
+        convo["priority"] = user_msg.capitalize()
+        convo["step"] = "create_issue"
+
+        # 📅 Parse due date
+        parsed_due = dateparser.parse(convo["due_raw"])
+        due_date = parsed_due.date().isoformat() if parsed_due else None
+
+        if not due_date:
+            send_slack_message(channel_id, "⚠️ Couldn't understand the due date. Please restart by sending a new message.")
+            conversation_states.pop(user_id, None)
+            return jsonify({"ok": True})
 
         # 🧱 Create Jira issue payload
         jira_payload = {
             "fields": {
                 "project": {"key": "BT"},
                 "summary": convo["summary"],
-                "duedate": convo["due"],
+                "duedate": due_date,
                 "priority": {"name": convo["priority"]},
                 "issuetype": {"name": "Task"}
             }
@@ -108,7 +118,7 @@ def slack_events():
         else:
             send_slack_message(channel_id, f"❌ Failed to create Jira issue.\n{jira_resp.text}")
 
-        conversation_states.pop(user_id, None)  # Clear convo state
+        conversation_states.pop(user_id, None)
 
     return jsonify({"ok": True})
 
