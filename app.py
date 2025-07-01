@@ -88,7 +88,7 @@ def slack_events():
         # 🧱 Create Jira issue payload
         jira_payload = {
             "fields": {
-                "project": {"key": "SCRUM"},
+                "project": {"key": "BT"},
                 "summary": convo["summary"],
                 "duedate": convo["due"],
                 "priority": {"name": convo["priority"]},
